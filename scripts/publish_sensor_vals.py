@@ -115,7 +115,7 @@ while not rospy.is_shutdown():
                                 [0.,1.,0.,-0.035],
                                 [0.,0.,1.,-0.065],
                                 [0.,0.,0.,1.]])
-        ir1_mat[0,3] = += ir1_range.range
+        ir1_mat[0,3] += ir1_range.range
         draw_funcs.draw_rviz_box(ir1_mat, [.025, .1, .1], duration = 0.5,\
                                      frame = '/camera_link', \
                                      color = [1,0,0], id=1)
@@ -125,7 +125,7 @@ while not rospy.is_shutdown():
                                 [0.,1.,0.,0.035],
                                 [0.,0.,1.,-0.065],
                                 [0.,0.,0.,1.]])
-        ir2_mat[0,3] = += ir2_range.range
+        ir2_mat[0,3] += ir2_range.range
         draw_funcs.draw_rviz_box(ir2_mat, [.025, .1, .1], duration = 0.5,\
                                      frame = '/camera_link', \
                                      color = [1,0,1], id=2)
