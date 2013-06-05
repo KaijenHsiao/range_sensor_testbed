@@ -30,19 +30,45 @@ max_ranges = {"sdm-io" : 0.75,
 angle_spreads = {"sdm-io": 15./180.*math.pi,
                  "hc-sro4": 40./180.*math.pi}
 
-sonar_types = ["sdm-io", "hc-sro4", "hc-sro4"]
-sonar_mats = [[[1.,0.,0.,0.02],
-               [0.,1.,0.,-0.035],
+sonar_types = ["hc-sro4", "hc-sro4", "hc-sro4", "hc-sro4", "hc-sro4"]
+sonar_mats = [[[1.,0.,0.,0.02],  #red
+               [0.,1.,0.,0.0],
                [0.,0.,1.,-0.36],
                [0.,0.,0.,1.]],
-              [[0.707,-0.707,0.,0.0],
-               [0.707,0.707,0.,-0.035],
-               [0.,0.,1.,-0.19],
-               [0.,0.,0.,1.]],
-              [[0.707,0.707,0.,0.0],
-               [-0.707,0.707,0.,0.17],
+
+              [[1.,0.,0.,0.02],  #green
+               [0.,1.,0.,-0.19],
                [0.,0.,1.,-0.36],
+               [0.,0.,0.,1.]],
+
+              [[1.,0.,0.,0.02],  #blue
+               [0.,1.,0.,0.19],
+               [0.,0.,1.,-0.36],
+               [0.,0.,0.,1.]],
+
+              [[0., 1., 0., -0.05], #yellow
+               [-1., 0., 0., -0.25],
+               [0., 0., 1., -0.36],
+               [0.,0.,0.,1.]],
+
+              [[0., -1., 0., -0.05], #cyan
+               [1., 0., 0., 0.25],
+               [0., 0., 1., -0.36],
                [0.,0.,0.,1.]]]
+
+
+
+              # [[0.707,-0.707,0.,0.0],  #blue
+              #  [0.707,0.707,0.,-0.19],
+              #  [0.,0.,1.,-0.36],
+              #  [0.,0.,0.,1.]],
+
+              # [[0.707,0.707,0.,0.0],  #
+              #  [-0.707,0.707,0.,0.17],
+              #  [0.,0.,1.,-0.36],
+              #  [0.,0.,0.,1.]],
+
+colors = [[1,0,0], [0,1,0], [0,0,1], [1,1,0], [0,1,1]]
 sonar_mats = [scipy.matrix(x) for x in sonar_mats]
 
 
@@ -85,5 +111,5 @@ while not rospy.is_shutdown():
     marker_mat = sonar_mats[sonar_id] * marker_trans
     draw_funcs.draw_rviz_cylinder(marker_mat, sonar_range * math.tan(angle_spreads[sonar_type]/2.), 
                                   0.025, frame = '/camera_link', 
-                                  ns = 'sonars', id = sonar_id, duration = 0.5, color = [0,1,1], 
+                                  ns = 'sonars', id = sonar_id, duration = 0.5, color = colors[sonar_id], 
                                   opaque = 0.5)

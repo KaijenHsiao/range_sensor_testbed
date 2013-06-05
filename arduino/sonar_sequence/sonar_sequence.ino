@@ -1,6 +1,16 @@
 
 //Sonar types: SDM-IO (trigger low), HC-SRO4 (trigger high)
 
+#define NUM_SONARS 5
+ int trigger_high[NUM_SONARS] = {1, 1, 1, 1, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
+ unsigned long timeout_lengths[NUM_SONARS] = {10000, 10000, 10000, 10000, 10000}; //in us
+ int trigger_pins[NUM_SONARS] = {13, 8, 7, 9, 10};
+ int echo_pins[NUM_SONARS] = {12, 2, 4, 6, 5};
+ 
+ int sequence_length = 5;
+ int sequence_order[NUM_SONARS] = {0, 1, 2, 3, 4};
+ unsigned long phase_length = 60000;  //in us
+/*
 #define NUM_SONARS 3
  int trigger_high[NUM_SONARS] = {0, 1, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
  unsigned long timeout_lengths[NUM_SONARS] = {10000, 10000, 10000}; //in us
@@ -10,7 +20,7 @@
  int sequence_length = 3;
  int sequence_order[NUM_SONARS] = {0, 1, 2};
  unsigned long phase_length = 60000;  //in us
-
+*/
 /*
 #define NUM_SONARS 2
  int trigger_high[NUM_SONARS] = {0, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
