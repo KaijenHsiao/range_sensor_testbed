@@ -8,29 +8,39 @@ import serial
 import roslib
 import scipy
 import math
-import tf
-import tf.transformations
+import signal
+from serial import SerialException
 
-def mat_to_pos_and_quat(mat):
-    """
-    converts a 4x4 scipy matrix to position and quaternion lists
-    """
-    quat = tf.transformations.quaternion_from_matrix(mat).tolist()
-    pos = mat[0:3,3].T.tolist()[0]
-    return (pos, quat)
+def signal_handler(signal, frame):
+    sys.exit(0)
 
-arduino_port = '/dev/ttyACM0'
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+def connect_arduino():
+    arduino_port = '/dev/ttyACM'
+    port_num = 0
+    arduino_serial = None
+    while arduino_serial == None:
+        port_name = arduino_port + str(port_num)
+    try:
+        arduino_serial = serial.Serial(port_name, baudrate=9600)
+        arduino_serial.flushInput()
+        rospy.loginfo("connected to arduino")
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception as e:
+        port_num = port_num + 1
+    if port_num > 10:
+        rospy.logerr("Failed to open arduino on %s with error: %s"%(port_name, str(e)))
+        time.sleep(1)
+        rospy.loginfo("Trying again")
+        port_num = 0
+    return arduino_serial
 
 rospy.init_node('publish_sonar_readings_node')
 sonar_pub = rospy.Publisher('sonars', Range)
-tf_broadcaster = tf.TransformBroadcaster()
-
-try:
-    s = serial.Serial(arduino_port, baudrate=9600)
-except Exception as e:
-    rospy.logerr('Failed to open port %s' % arduino_port)
-    rospy.logerr(str(e))
-    sys.exit(-1)
+arduino_serial = connect_arduino()
 
 min_ranges = {"sdm-io" : 0.01,
               "hc-sro4" : 0.04}
@@ -39,46 +49,31 @@ max_ranges = {"sdm-io" : 0.75,
 angle_spreads = {"sdm-io": 15./180.*math.pi,
                  "hc-sro4": 40./180.*math.pi}
 
-sonar_frame_mat = [[1.,0.,0.,0.31],
-                   [0.,1.,0.,0.],
-                   [0.,0.,1.,0.05],
-                   [0.,0.,0.,1.]]
-sonar_frame_pos, sonar_frame_quat = mat_to_pos_and_quat(scipy.matrix(sonar_frame_mat))
-
-sonar_types = ["hc-sro4", "hc-sro4", "hc-sro4", "hc-sro4", "hc-sro4"]
-sonar_mats = [[[1.,0.,0.,0.02],  #red
-               [0.,1.,0.,0.0],
-               [0.,0.,1.,0.04],
-               [0.,0.,0.,1.]],
-
-              [[1.,0.,0.,0.02],  #green
-               [0.,1.,0.,-0.19],
-               [0.,0.,1.,0.04],
-               [0.,0.,0.,1.]],
-
-              [[1.,0.,0.,0.02],  #blue
-               [0.,1.,0.,0.19],
-               [0.,0.,1.,0.04],
-               [0.,0.,0.,1.]],
-
-              [[0., 1., 0., -0.05], #yellow
-               [-1., 0., 0., -0.25],
-               [0., 0., 1., 0.04],
-               [0.,0.,0.,1.]],
-
-              [[0., -1., 0., -0.05], #cyan
-               [1., 0., 0., 0.25],
-               [0., 0., 1., 0.04],
-               [0.,0.,0.,1.]]]
-
-colors = [[1,0,0], [0,1,0], [0,0,1], [1,1,0], [0,1,1]]
-sonar_mats = [scipy.matrix(x) for x in sonar_mats]
-
-
+sonar_types = ["hc-sro4", "hc-sro4", "hc-sro4"]
 
 nlines = 0
 while not rospy.is_shutdown():
-    l =  s.readline()
+    try:
+        l = arduino_serial.readline()
+        failed_count = 0
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except SerialException as e:
+        rospy.logwarn("Serial exception: %s"%str(e))
+        time.sleep(1)
+        if failed_count > 10:
+            rospy.logerr("Failed to read %d lines, trying to reconnect"%failed_count)
+            try:
+                arduino_serial = connect_arduino()
+            except:
+                rospy.logerr("Failed to reconect.")
+                sys.exit(1)
+        else:
+            failed_count += 1
+    except Exception as e:
+        rospy.logwarn("caught exception while reading from arduino: %s"%str(e))
+        time.sleep(1)
+
     nlines += 1
 
     # the first few lines we get form the board are often junk; ignore them
@@ -107,12 +102,6 @@ while not rospy.is_shutdown():
         print "higher than max range of", max_ranges[sonar_type] 
         continue
 
-    marker_trans = scipy.matrix([[0., 0., 1., sonar_range],
-                               [1., 0., 0., 0.],
-                               [0., 1., 0., 0.],
-                               [0., 0., 0., 1.]])
-    marker_mat = sonar_mats[sonar_id] * marker_trans
-
     range_msg = Range()
     range_msg.radiation_type = range_msg.ULTRASOUND
     range_msg.field_of_view = angle_spreads[sonar_type]
@@ -124,12 +113,5 @@ while not rospy.is_shutdown():
     range_msg.header.frame_id = "sonar" + str(sonar_id)
 
     sonar_pub.publish(range_msg)
-    sonar_pos, sonar_quat = mat_to_pos_and_quat(sonar_mats[sonar_id])
-    tf_broadcaster.sendTransform(sonar_frame_pos, sonar_frame_quat, rospy.Time.now(), "sonar_frame", "base_footprint" )
-    tf_broadcaster.sendTransform(sonar_pos, sonar_quat, rospy.Time.now(), "sonar" + str(sonar_id), "sonar_frame" )
      
 
-#    draw_funcs.draw_rviz_cylinder(marker_mat, sonar_range * math.tan(angle_spreads[sonar_type]/2.), 
-#                                  0.025, frame = '/camera_link', 
-#                                  ns = 'sonars', id = sonar_id, duration = 0.5, color = [0,1,1], 
-#                                  opaque = 0.5)
