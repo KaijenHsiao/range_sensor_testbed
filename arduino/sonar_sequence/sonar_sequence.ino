@@ -2,7 +2,7 @@
 //Sonar types: SDM-IO (trigger low), HC-SRO4 (trigger high)
 
 #define NUM_SONARS 3
-int trigger_high[NUM_SONARS] = {0, 1, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
+int trigger_high[NUM_SONARS] = {1, 1, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
 unsigned long timeout_lengths[NUM_SONARS] = {10000, 10000, 10000}; //in us
 int trigger_pins[NUM_SONARS] = {13, 8, 7};
 int echo_pins[NUM_SONARS] = {12, 2, 4};
