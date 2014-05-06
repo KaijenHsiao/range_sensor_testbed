@@ -1,50 +1,15 @@
 
 //Sonar types: SDM-IO (trigger low), HC-SRO4 (trigger high)
 
-#define NUM_SONARS 5
- int trigger_high[NUM_SONARS] = {1, 1, 1, 1, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
- unsigned long timeout_lengths[NUM_SONARS] = {10000, 10000, 10000, 10000, 10000}; //in us
- int trigger_pins[NUM_SONARS] = {13, 8, 7, 9, 10};
- int echo_pins[NUM_SONARS] = {12, 2, 4, 6, 5};
- 
- int sequence_length = 5;
- int sequence_order[NUM_SONARS] = {0, 1, 2, 3, 4};
- unsigned long phase_length = 60000;  //in us
-/*
 #define NUM_SONARS 3
- int trigger_high[NUM_SONARS] = {0, 1, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
- unsigned long timeout_lengths[NUM_SONARS] = {10000, 10000, 10000}; //in us
- int trigger_pins[NUM_SONARS] = {13, 8, 7};
- int echo_pins[NUM_SONARS] = {12, 2, 4};
+int trigger_high[NUM_SONARS] = {0, 1, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
+unsigned long timeout_lengths[NUM_SONARS] = {10000, 10000, 10000}; //in us
+int trigger_pins[NUM_SONARS] = {13, 8, 7};
+int echo_pins[NUM_SONARS] = {12, 2, 4};
  
- int sequence_length = 3;
- int sequence_order[NUM_SONARS] = {0, 1, 2};
- unsigned long phase_length = 60000;  //in us
-*/
-/*
-#define NUM_SONARS 2
- int trigger_high[NUM_SONARS] = {0, 1};  //0 = triggers upon bringing pin low and then high; 1=high then low
- unsigned long timeout_lengths[NUM_SONARS] = {10000, 10000}; //in us
- int trigger_pins[NUM_SONARS] = {13, 7};
- int echo_pins[NUM_SONARS] = {12, 4};
- 
- int sequence_length = 2;
- int sequence_order[NUM_SONARS] = {0, 1};
- unsigned long phase_length = 100000;  //in us
- */
-/*
-#define NUM_SONARS 1
-//int trigger_high[NUM_SONARS] = {0};
-int trigger_high[NUM_SONARS] = {1};
-unsigned long timeout_lengths[NUM_SONARS] = {10000};
-//int trigger_pins[NUM_SONARS] = {13};
-//int echo_pins[NUM_SONARS] = {12};
-int trigger_pins[NUM_SONARS] = {8};
-int echo_pins[NUM_SONARS] = {2};
-int sequence_length = 1;
-int sequence_order[NUM_SONARS] = {0};
-unsigned long phase_length = 100000;
-*/
+int sequence_length = 3;
+int sequence_order[NUM_SONARS] = {0, 1, 2};
+unsigned long phase_length = 60000;  //in us
 
 void setup() {
   Serial.begin(9600);
@@ -55,7 +20,6 @@ void setup() {
     pinMode(echo_pins[i], INPUT);
     if (trigger_high[i]) digitalWrite(trigger_pins[i], LOW);
     else digitalWrite(trigger_pins[i], HIGH);
-
   }
   delay(100);
 }
@@ -102,15 +66,12 @@ int listenForEcho(int index, unsigned long start_time, unsigned long *duration){
 int waitForPinReady(int index, unsigned long start_time){
   while(1){
     bool pin = digitalRead(echo_pins[index]);
-    //Serial.print(pin);
     if(pin){
-      //Serial.println();
       return 1;
     }
     //check for timeout
     unsigned long current_time = micros();
     if (current_time - start_time > timeout_lengths[index] || current_time - start_time < 0){
-      //Serial.println();
       Serial.print(index);
       Serial.print(" timeout waiting for pin ready\n");
       return -1;       
@@ -129,12 +90,7 @@ void loop() {
 
     // trigger all the sonars in this phase
     for (int i=0; i<NUM_SONARS; i++) {
-      if (sequence_order[i] == sequence_step){
-        
-        /*Serial.print("triggering ");
-         Serial.print(i);
-         Serial.println();
-        */
+      if (sequence_order[i] == sequence_step){        
         durations[i] = 0;
         startPingTrigger(i);
       }
@@ -161,16 +117,8 @@ void loop() {
       for (int i=0; i<NUM_SONARS; i++) {
         if (sequence_order[i] == sequence_step){
           if (durations[i] == 0 && start_times[i] != 0){
-            
-            //durations[i] = pulseIn(echo_pins[i], HIGH);
-            //int response = 1;
-           
             int response = listenForEcho(i, start_times[i], &durations[i]);
-            if (response == 0) done = false; 
-            
-            else if (response != -1){
-
-            }
+            if (response == 0) done = false;             
           }
         }  
       }
@@ -180,17 +128,12 @@ void loop() {
       if (sequence_order[i] == sequence_step && durations[i]){
         Serial.print(i);
         for(int j=0; j<i+1; j++) Serial.print("\t\t\t");
-        //Serial.print(durations[i]);
-        //Serial.print(" us, \t");
         Serial.print(durations[i]*0.017, DEC);
         Serial.print(" cm");
         Serial.println();
       }
     }
     // wait for the next phase if not over-time already
-    //Serial.print("finished phase in ");
-    //Serial.print(micros()-step_start);
-    //Serial.println();
     unsigned long current_time = micros();
     while ((current_time - step_start) < phase_length && current_time - step_start > 0){
       delay(1);
